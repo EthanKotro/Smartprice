@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SmartPrice</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        form {
+            width: 400px;
+            margin: 0 auto;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Welcome to SmartPrice</h1>
+    <p>Find the best deals on your favorite products.</p>
+
+    <form method="post" action="/pricefinder/search/"> 
+        {% csrf_token %} 
+        <label for="search_query">Enter Product URL or Name:</label>
+        <input type="text" id="search_query" name="search_query" placeholder="Enter URL or Name">
+        <button type="submit">Search</button>
+    </form>
+
+</body>
+</html>
