@@ -1,29 +1,36 @@
-{% extends 'base.html' %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SmartPrice - Product Details</title>
+    <style>
+        /* Your CSS styles here */
+    </style>
+</head>
+<body>
+    <h2>Product Details: {{ product.name }}</h2>
 
-{% block content %}
-  <h2>Product Details: {{ product.name }}</h2>
+    {% if prices %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Price</th>
+                    <th>Source</th> 
+                </tr>
+            </thead>
+            <tbody>
+                {% for price in prices %}
+                    <tr>
+                        <td>{{ price.timestamp }}</td>
+                        <td>{{ price.price }}</td>
+                        <td>{{ price.source }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No price information available.</p>
+    {% endif %}
 
-  {% if prices %}
-    <table class="table">
-      <thead>
-        <tr>
-          <th>Timestamp</th>
-          <th>Price</th>
-          <th>Source</th> 
-        </tr>
-      </thead>
-      <tbody>
-        {% for price in prices %}
-          <tr>
-            <td>{{ price.timestamp }}</td>
-            <td>{{ price.price }}</td>
-            <td>{{ price.source }}</td> 
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  {% else %}
-    <p>No price history found.</p>
-  {% endif %}
-
-{% endblock %}
+</body>
+</html>

@@ -1,5 +1,7 @@
 from django.urls import path
-from . import views 
+from . import views
+
+app_name = 'pricefinder' 
 
 urlpatterns = [
     path('', views.landing_page, name='landing_page'), 
