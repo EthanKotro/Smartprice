@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>SmartPrice</title>
     <style>
@@ -42,17 +43,17 @@
         }
     </style>
 </head>
+
 <body>
 
     <h1>Welcome to SmartPrice</h1>
     <p>Find the best deals on your favorite products.</p>
 
-    <form method="post" action="/pricefinder/search/"> 
-        {% csrf_token %} 
-        <label for="search_query">Enter Product URL or Name:</label>
-        <input type="text" id="search_query" name="search_query" placeholder="Enter URL or Name">
+    <form action="{% url 'pricefinder:product_search' %}" method="GET">
+        <input type="text" name="q" placeholder="Search for a product" required>
         <button type="submit">Search</button>
     </form>
 
 </body>
+
 </html>

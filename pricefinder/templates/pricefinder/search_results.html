@@ -1,0 +1,28 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Best Deal for {{ query }}</title>
+
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'pricefinder/css/search_results.css' %}">
+</head>
+<body>
+    <h1>Best Deal for "{{ query }}"</h1>
+
+    {% if products %}
+        <div>
+            <h3>{{ products.0.name }}</h3>
+            <p>Price: KES {{ products.0.price }}</p>
+            <p>Store: {{ products.0.store }}</p>
+            <a href="{{ products.0.url }}" target="_blank">View Product</a>
+        </div>
+    {% else %}
+        <p>No products found.</p>
+    {% endif %}
+
+    <a href="{% url 'pricefinder:landing_page' %}">Back to Home</a>
+</body>
+</html>

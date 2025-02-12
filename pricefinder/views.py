@@ -1,44 +1,47 @@
-from django.shortcuts import render, redirect
-from .models import Product, Price
-from .utils import scrape_product_price 
-from selenium import webdriver 
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+from django.shortcuts import render, get_object_or_404
+from django.http import JsonResponse
+from .models import Product
+from .utils import get_best_deal, scrape_product_prices, get_best_deal
+
 
 def landing_page(request):
-    return render(request, 'pricefinder/landing_page.html') 
+    """Renders the homepage"""
+    return render(request, 'pricefinder/landing_page.html')
+
 
 def product_search(request):
-    if request.method == 'POST':
-        product_name = request.POST.get('search_query')
+    query = request.GET.get('q', '').strip()  # Get the user's search term
 
-        # Create or retrieve the Product object
-        product, created = Product.objects.get_or_create(name=product_name)
+    if not query:
+        return render(request, 'pricefinder/search_results.html', {'query': query, 'products': []})
 
-        # Platforms to scrape
-        platforms = ["jumia", "amazon", "alibaba", "kilimall"] 
+    # Scrape products from multiple sites
+    scraped_data = scrape_product_prices(query)
 
-        for platform in platforms:
-            try:
-                price = scrape_product_price(product_name, platform) 
-                if price:
-                    Price.objects.create(product=product, price=price, source=platform) 
-            except Exception as e:
-                print(f"Error scraping price from {platform} for {product_name}: {e}")
+    if not scraped_data:
+        return render(request, 'pricefinder/search_results.html', {'query': query, 'products': []})
 
-        return redirect('pricefinder:product_details', product_id=product.id) 
+    best_deal = get_best_deal(scraped_data)  # Use AI to find the best deal
 
-    return render(request, 'pricefinder/landing_page.html') 
+    return render(request, 'pricefinder/search_results.html', {'query': query, 'products': [best_deal]})
+
 
 def product_details(request, product_id):
-    try:
-        product = Product.objects.get(id=product_id)
-        prices = Price.objects.filter(product=product).order_by('price') 
-        context = {'product': product, 'prices': prices} 
-        return render(request, 'pricefinder/details.html', context)
-    except Product.DoesNotExist:
-        raise Http404("Product not found.")
+    """Displays product details"""
+    product = get_object_or_404(Product, id=product_id)
+    return render(request, 'pricefinder/product_details.html', {'product': product})
 
-def landing_page(request):
-    return render(request, 'pricefinder/landing_page.html')       
+
+def best_deal_view(request):
+    """API endpoint to return the best price for a searched product"""
+    product_name = request.GET.get("q", "").strip()
+
+    if not product_name:
+        return JsonResponse({"error": "No product name provided"}, status=400)
+
+    best_deal = get_best_deal(product_name)
+
+    if best_deal:
+        return JsonResponse(best_deal)
+
+    return JsonResponse({"message": "No matching products found"}, status=404)

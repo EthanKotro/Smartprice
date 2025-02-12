@@ -1,10 +1,9 @@
 
-
+import os
 from pathlib import Path
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-
 
 
 SECRET_KEY = 'django-insecure-(lo0ko@g2c#+cw30c3tn5!23)pn6+i__+9+jm)6&4!=b)l5i$g'
@@ -20,7 +19,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'pricefinder', 
+    'pricefinder',
 ]
 
 MIDDLEWARE = [
@@ -77,7 +76,6 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-
 LANGUAGE_CODE = 'en-us'
 
 TIME_ZONE = 'UTC'
@@ -88,6 +86,8 @@ USE_TZ = True
 
 
 STATIC_URL = 'static/'
-
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'pricefinder/static'),
+]
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
