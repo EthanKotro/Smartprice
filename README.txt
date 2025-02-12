@@ -1,0 +1,1 @@
+to get dependancies, run: pip install -r requirements.txt
