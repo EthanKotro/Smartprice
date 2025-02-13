@@ -1,7 +1,7 @@
 from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
 from .models import Product
-from .utils import get_best_deal, scrape_product_prices, get_best_deal
+from .utils import get_best_deal, scrape_product_prices
 
 
 def landing_page(request):
