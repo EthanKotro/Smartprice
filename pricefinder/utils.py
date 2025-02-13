@@ -2,6 +2,26 @@ import requests
 from bs4 import BeautifulSoup
 import re
 import concurrent.futures
+import numpy as np
+from sklearn.linear_model import LinearRegression
+
+# Dummy dataset for training the model
+# Features: [normalized price, store credibility score]
+# Labels: Predicted deal score (lower is better)
+dummy_data = np.array([
+    [0.8, 0.9, 1],  # Jumia
+    [0.6, 0.8, 0.8],  # Kilimall
+    [0.9, 0.95, 1.1],  # Amazon Kenya
+    [0.5, 0.7, 0.7]  # Alibaba
+])
+
+X_train = dummy_data[:, :-1]
+y_train = dummy_data[:, -1]
+
+# Train the AI model
+model = LinearRegression()
+model.fit(X_train, y_train)
+
 
 def scrape_product_prices(search_query):
     """Scrapes multiple e-commerce websites and returns product prices"""
@@ -11,6 +31,13 @@ def scrape_product_prices(search_query):
         "Kilimall": f"https://www.kilimall.co.ke/search?search={search_query}",
         "Amazon Kenya": f"https://www.amazon.com/s?k={search_query}",
         "Alibaba": f"https://www.alibaba.com/trade/search?SearchText={search_query}",
+    }
+
+    store_credibility = {
+        "Jumia": 0.9,
+        "Kilimall": 0.8,
+        "Amazon Kenya": 0.95,
+        "Alibaba": 0.7
     }
 
     products = []
@@ -26,11 +53,9 @@ def scrape_product_prices(search_query):
                 for product in product_elements:
                     product_name = product.select_one("h3.name").text.strip()
                     product_price = product.select_one("div.prc").text.strip()
-                    product_link_tag = product.find_parent("a")  # Find parent <a> tag
+                    product_link_tag = product.find_parent("a")
                     product_link = product_link_tag['href'] if product_link_tag else None
-
                     cleaned_price = re.sub(r"[^\d.]", "", product_price)
-                    print(f"Found product: {product_name}, Price: {cleaned_price}, Link: {product_link}")
 
                     products.append({
                         "store": store,
@@ -38,76 +63,40 @@ def scrape_product_prices(search_query):
                         "price": float(cleaned_price) if cleaned_price else None,
                         "url": f"https://www.jumia.co.ke{product_link}"
                     })
-
-            elif store == "Kilimall":
-                product_elements = soup.select("div.sku-product")
-                for product in product_elements:
-                    product_name = product.select_one("p.title").text.strip()
-                    product_price = product.select_one("b.price").text.strip()
-                    product_link = product.select_one("a.product")['href']
-
-                    cleaned_price = re.sub(r"[^\d.]", "", product_price)
-
-                    products.append({
-                        "store": store,
-                        "name": product_name,
-                        "price": float(cleaned_price) if cleaned_price else None,
-                        "url": product_link
-                    })
-
-            elif store == "Amazon Kenya":
-                product_elements = soup.select("div.sku-product")
-                for product in product_elements:
-                    product_name = product.select_one("span.a-size-medium").text.strip()
-                    product_price = product.select_one("span.a-price-whole").text.strip()
-                    product_link = product.select_one("a.a-link-normal")['href']
-
-                    cleaned_price = re.sub(r"[^\d.]", "", product_price)
-
-                    products.append({
-                        "store": store,
-                        "name": product_name,
-                        "price": float(cleaned_price) if cleaned_price else None,
-                        "url": product_link
-                    })
-
-
-
-            elif store == "Alibaba":
-                product_elements = soup.select("div.sku-product")
-                for product in product_elements:
-                    product_name = product.select_one("h2.title").text.strip()
-                    product_price = product.select_one("span.price").text.strip()
-                    product_link = product.select_one("a.product")['href']
-
-                    cleaned_price = re.sub(r"[^\d.]", "", product_price)
-
-                    products.append({
-                        "store": store,
-                        "name": product_name,
-                        "price": float(cleaned_price) if cleaned_price else None,
-                        "url": product_link
-                    })
         except Exception as e:
             print(f"Error scraping {store}: {e}")
 
-    # Use ThreadPoolExecutor to scrape stores in parallel
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        futures = []
-        for store, url in search_urls.items():
-            futures.append(executor.submit(scrape_store, store, url))
-        
-        # Wait for all threads to finish
+        futures = [executor.submit(scrape_store, store, url)
+                   for store, url in search_urls.items()]
         concurrent.futures.wait(futures)
 
     return products
 
 
-
 def get_best_deal(products):
-    """Finds the cheapest product"""
-    products = [p for p in products if p["price"]
-                is not None]  # Remove None values
+    """Finds the best deal using AI model"""
     if not products:
         return None
-    return min(products, key=lambda x: x["price"])  # Find the lowest price
+
+    store_credibility = {
+        "Jumia": 0.9,
+        "Kilimall": 0.8,
+        "Amazon Kenya": 0.95,
+        "Alibaba": 0.7
+    }
+    # Normalize prices
+    prices = [p["price"] for p in products if p["price"] is not None]
+    if not prices:
+        return None
+    max_price = max(prices)
+
+    for product in products:
+        if product["price"] is None:
+            continue
+        store_score = store_credibility.get(product["store"], 0.5)
+        normalized_price = product["price"] / max_price
+        score = model.predict([[normalized_price, store_score]])[0]
+        product["deal_score"] = score
+
+    return min(products, key=lambda x: x["deal_score"])
