@@ -5,10 +5,9 @@ import concurrent.futures
 
 def scrape_product_prices(search_query):
     """Scrapes multiple e-commerce websites and returns product prices"""
-
     search_urls = {
         "Jumia": f"https://www.jumia.co.ke/catalog/?q={search_query}",
-        "Kilimall": f"https://www.kilimall.co.ke/search?search={search_query}",
+        "Kilimall": f"https://www.kilimall.co.ke/search?q={search_query}",
         "Amazon Kenya": f"https://www.amazon.com/s?k={search_query}",
         "Alibaba": f"https://www.alibaba.com/trade/search?SearchText={search_query}",
     }
@@ -30,7 +29,6 @@ def scrape_product_prices(search_query):
                     product_link = product_link_tag['href'] if product_link_tag else None
 
                     cleaned_price = re.sub(r"[^\d.]", "", product_price)
-                    print(f"Found product: {product_name}, Price: {cleaned_price}, Link: {product_link}")
 
                     products.append({
                         "store": store,
@@ -38,22 +36,36 @@ def scrape_product_prices(search_query):
                         "price": float(cleaned_price) if cleaned_price else None,
                         "url": f"https://www.jumia.co.ke{product_link}"
                     })
-
             elif store == "Kilimall":
-                product_elements = soup.select("div.sku-product")
+                response = requests.get(url)
+                # Get all product containers
+                product_elements = soup.select("div.product-item")
                 for product in product_elements:
-                    product_name = product.select_one("p.title").text.strip()
-                    product_price = product.select_one("b.price").text.strip()
-                    product_link = product.select_one("a.product")['href']
+                    # Extract the product name
+                    product_name = product.select_one("div.info-box p.product-title").text.strip()                 
+                    # Extract the product price
+                    product_price = product.select_one("div.info-box div.product-price").text.strip()                    
+                    # Extract product link
+                    product_link_tag = product.select_one("a")
+                    product_link = product_link_tag['href']
+                    product_link = f"https://www.kilimall.co.ke{product_link}"
 
-                    cleaned_price = re.sub(r"[^\d.]", "", product_price)
-
+                    
+                    # Clean the price (if it's found)
+                    cleaned_price = re.sub(r"[^\d.]", "", product_price) if product_price else None
+                    
+                    # Print product details (for debugging)
+                    print(f"Found product: {product_name}, Price: {cleaned_price}, Link: {product_link}")
+                    
+                    # Append the product to the list
                     products.append({
                         "store": store,
                         "name": product_name,
                         "price": float(cleaned_price) if cleaned_price else None,
                         "url": product_link
                     })
+
+
 
             elif store == "Amazon Kenya":
                 product_elements = soup.select("div.sku-product")
@@ -72,20 +84,33 @@ def scrape_product_prices(search_query):
                     })
 
 
-
             elif store == "Alibaba":
-                product_elements = soup.select("div.sku-product")
+                product_elements = soup.select("div.card-info.list-card-layout__info")
                 for product in product_elements:
-                    product_name = product.select_one("h2.title").text.strip()
-                    product_price = product.select_one("span.price").text.strip()
-                    product_link = product.select_one("a.product")['href']
+                    product_name = product.select_one("h2.search-card-e-title").text.strip()
+                    price_element = product.select_one("a.search-card-e-detail-wrapper")
+                    product_price = price_element.text.strip() if price_element else None
+                    product_link = product.select_one("a.search-card-e-detail-wrapper")['href']
 
-                    cleaned_price = re.sub(r"[^\d.]", "", product_price)
+                    if product_price:
+                        price_match = re.search(r"([\d.,]+)-([\d.,]+)|([\d.,]+)", product_price)
+                        if price_match:
+                            if price_match.group(1) and price_match.group(2):
+                                max_price = float(re.sub(r"[^\d.]", "", price_match.group(2)))
+                                cleaned_price = max_price
+                            elif price_match.group(3):
+                                cleaned_price = float(re.sub(r"[^\d.]", "", price_match.group(3)))
+                            else:
+                                cleaned_price = None
+                        else:
+                            cleaned_price = None
+                    else:
+                        cleaned_price = None
 
                     products.append({
                         "store": store,
                         "name": product_name,
-                        "price": float(cleaned_price) if cleaned_price else None,
+                        "price": cleaned_price,
                         "url": product_link
                     })
         except Exception as e:
